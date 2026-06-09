@@ -359,14 +359,16 @@ class AniWave :
         val sub = if (element.attr("data-sub").toIntOrNull() == 1) "Sub" else ""
         val dub = if (element.attr("data-dub").toIntOrNull() == 1) "Dub" else ""
         val softSub = if (SOFTSUB_REGEX.containsMatchIn(title)) "SoftSub" else ""
-        val name = element.parent()?.select("span.d-title")?.text().orEmpty()
+        val isFiller = element.hasClass("filler")
+        val name = element.parent()?.select("span.d-title")?.text().orEmpty().ifBlank { title }
 
         val malId = element.attr("data-mal")
         val slug = element.attr("data-slug")
         val timestamp = element.attr("data-timestamp")
 
         return SEpisode.create().apply {
-            this.name = "Episode $epNum" + if (name.isNotEmpty() && name != "Episode $epNum") ": $name" else ""
+            val episodeName = "Episode $epNum" + if (name.isNotEmpty() && name != "Episode $epNum") ": $name" else ""
+            this.name = if (isFiller) "$episodeName (Filler)" else episodeName
             this.url = buildString {
                 append("$ids&epurl=${EP_URL_SUFFIX_REGEX.replace(animeUrl, "")}/ep-$epNum")
                 if (malId.isNotBlank()) append("&mal=$malId")
@@ -375,7 +377,7 @@ class AniWave :
             }
             episode_number = epNum.toFloatOrNull() ?: 0f
             date_upload = RELEASE_REGEX.find(title)?.let { parseDate(it.groupValues[1]) } ?: 0L
-            scanlator = listOf(sub, softSub, dub).filter(String::isNotBlank).joinToString(", ")
+            scanlator = if (isFiller) "Filler" else listOf(sub, softSub, dub).filter(String::isNotBlank).joinToString(", ")
         }
     }
 
